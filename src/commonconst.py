@@ -69,20 +69,24 @@ REFERENCE_PROCESSED_CSV_PATH = os.path.join(OUTPUT_DIR, "processed_reference_tex
 # =================================
 ROBUSTNESS_DIR = os.path.join(OUTPUT_DIR, "Robustness")
 
-ONEWAY_ANOVA_CSV_PATH = os.path.join(
+RANDOMIZED_BLOCK_ANOVA_CSV_PATH = os.path.join(
     ROBUSTNESS_DIR,
-    "oneway_anova_by_metric.csv",
+    "randomized_block_anova_by_metric.csv",
 )
 
 TOPIC_LEVEL_METRIC_SCORES_CSV_PATH = os.path.join(
     ROBUSTNESS_DIR,
-    "topic_level_metric_scores_for_anova.csv",
+    "domain_level_metric_scores_for_anova.csv",
 )
 
-ONEWAY_ANOVA_PLOT_PATH = os.path.join(
+RANDOMIZED_BLOCK_ANOVA_PLOT_PATH = os.path.join(
     PLOTS_DIR,
-    "oneway_anova_p_values_by_metric.png",
+    "randomized_block_anova_p_values_by_metric.png",
 )
+
+# Backward-compatible aliases for older scripts.
+ONEWAY_ANOVA_CSV_PATH = RANDOMIZED_BLOCK_ANOVA_CSV_PATH
+ONEWAY_ANOVA_PLOT_PATH = RANDOMIZED_BLOCK_ANOVA_PLOT_PATH
 
 ROBUSTNESS_METRICS = [
     "ROUGE Lexical Overlap",
@@ -94,8 +98,9 @@ ROBUSTNESS_METRICS = [
     "Risk-Assessment Reference Similarity",
 ]
 
-# ANOVA is run only on the formal benchmark topics below.
-# The scope note/disclaimer topic is intentionally excluded.
+# ANOVA is run only on the formal response domains below.
+# Risk Level Interpretation and Note are intentionally excluded because they
+# function as contextual guidance rather than formal response domains.
 ROBUSTNESS_TOPIC_ORDER = [
     "Current Suicidal Ideation",
     "Risk Assessments",
@@ -103,7 +108,6 @@ ROBUSTNESS_TOPIC_ORDER = [
     "Support System & Protective Factors",
     "Safety Plan",
     "Risk Re-Assessment",
-    "Risk Level Interpretation",
     "Other important assessment aspects",
 ]
 

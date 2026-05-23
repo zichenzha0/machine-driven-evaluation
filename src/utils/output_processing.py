@@ -268,7 +268,7 @@ def save_overall_summary_table(summary_df: pd.DataFrame, output_path: str):
 
 
 # =================================
-# ROBUSTNESS / INFERENTIAL ANALYSIS: ONE-WAY ANOVA
+# ROBUSTNESS / INFERENTIAL ANALYSIS: RANDOMIZED-BLOCK ANOVA
 # =================================
 
 def _get_available_robustness_metrics(df: pd.DataFrame) -> list[str]:
@@ -290,39 +290,115 @@ def _topic_sort_key_for_robustness(topic: str):
     return (len(ROBUSTNESS_TOPIC_ORDER) + len(CANONICAL_TOPIC_ORDER) + 1, topic)
 
 
-def _eta_squared_from_groups(groups: list[np.ndarray]) -> float:
-    """Classical one-way ANOVA eta-squared: SS_between / SS_total."""
-    clean_groups = [np.asarray(g, dtype=float) for g in groups if len(g) > 0]
-    if len(clean_groups) < 2:
-        return np.nan
+def _run_randomized_block_anova(metric_df: pd.DataFrame, metric: str) -> dict:
+    """
+    Run randomized-block ANOVA without replication.
 
-    all_values = np.concatenate(clean_groups)
-    if all_values.size == 0:
-        return np.nan
+    Rows are chatbot systems, columns are response domains. The chatbot-system effect
+    is the factor of interest; response domain is the blocking factor. This keeps the
+    existing metric calculations unchanged while improving the inferential model so
+    domain-level differences are accounted for rather than treated as independent noise.
+    """
+    clean_df = metric_df[["Chatbot", "Topic", metric]].copy()
+    clean_df[metric] = pd.to_numeric(clean_df[metric], errors="coerce")
+    clean_df = clean_df.dropna(subset=[metric])
 
-    grand_mean = float(np.mean(all_values))
-    ss_between = sum(len(g) * (float(np.mean(g)) - grand_mean) ** 2 for g in clean_groups)
-    ss_total = float(np.sum((all_values - grand_mean) ** 2))
+    matrix_df = clean_df.pivot_table(
+        index="Chatbot",
+        columns="Topic",
+        values=metric,
+        aggfunc="mean",
+    )
 
-    if ss_total <= 0:
-        return 0.0
-    return float(ss_between / ss_total)
+    # Classical randomized-block ANOVA requires a complete chatbot x domain matrix.
+    # This drops only incomplete rows/columns for the specific metric being tested.
+    matrix_df = matrix_df.dropna(axis=0, how="any").dropna(axis=1, how="any")
+
+    k_chatbots = int(matrix_df.shape[0])
+    b_domains = int(matrix_df.shape[1])
+    total_observations = int(k_chatbots * b_domains)
+
+    if k_chatbots < 2 or b_domains < 2:
+        return {
+            "Number of Chatbot Groups": k_chatbots,
+            "Number of Response Domains": b_domains,
+            "Total Domain-Level Observations": total_observations,
+            "df_chatbot": np.nan,
+            "df_domain": np.nan,
+            "df_residual": np.nan,
+            "F Statistic": np.nan,
+            "p-value": np.nan,
+            "Eta Squared": np.nan,
+            "Partial Eta Squared": np.nan,
+            "Included Chatbots": list(matrix_df.index),
+            "Included Response Domains": list(matrix_df.columns),
+            "Interpretation": "Insufficient complete chatbot-by-domain observations for randomized-block ANOVA",
+        }
+
+    values = matrix_df.to_numpy(dtype=float)
+    grand_mean = float(values.mean())
+    chatbot_means = values.mean(axis=1)
+    domain_means = values.mean(axis=0)
+
+    ss_total = float(((values - grand_mean) ** 2).sum())
+    ss_chatbot = float(b_domains * ((chatbot_means - grand_mean) ** 2).sum())
+    ss_domain = float(k_chatbots * ((domain_means - grand_mean) ** 2).sum())
+    ss_residual = float(ss_total - ss_chatbot - ss_domain)
+    # Guard against tiny negative residuals from floating point precision.
+    if ss_residual < 0 and abs(ss_residual) < 1e-12:
+        ss_residual = 0.0
+
+    df_chatbot = k_chatbots - 1
+    df_domain = b_domains - 1
+    df_residual = df_chatbot * df_domain
+
+    ms_chatbot = ss_chatbot / df_chatbot if df_chatbot > 0 else np.nan
+    ms_residual = ss_residual / df_residual if df_residual > 0 else np.nan
+
+    if pd.isna(ms_residual) or ms_residual <= 0:
+        f_statistic = np.nan
+        p_value = np.nan
+    else:
+        f_statistic = ms_chatbot / ms_residual
+        p_value = stats.f.sf(f_statistic, df_chatbot, df_residual)
+
+    eta_squared = ss_chatbot / ss_total if ss_total > 0 else np.nan
+    partial_eta_squared = (
+        ss_chatbot / (ss_chatbot + ss_residual)
+        if (ss_chatbot + ss_residual) > 0
+        else np.nan
+    )
+
+    return {
+        "Number of Chatbot Groups": k_chatbots,
+        "Number of Response Domains": b_domains,
+        "Total Domain-Level Observations": total_observations,
+        "df_chatbot": df_chatbot,
+        "df_domain": df_domain,
+        "df_residual": df_residual,
+        "F Statistic": round(float(f_statistic), 4) if pd.notna(f_statistic) else np.nan,
+        "p-value": round(float(p_value), 6) if pd.notna(p_value) else np.nan,
+        "Eta Squared": round(float(eta_squared), 4) if pd.notna(eta_squared) else np.nan,
+        "Partial Eta Squared": round(float(partial_eta_squared), 4) if pd.notna(partial_eta_squared) else np.nan,
+        "Included Chatbots": list(matrix_df.index),
+        "Included Response Domains": list(matrix_df.columns),
+        "Interpretation": (
+            "Statistically significant chatbot-system effect (p < .05)"
+            if pd.notna(p_value) and float(p_value) < 0.05
+            else "No statistically significant chatbot-system effect at p < .05"
+            if pd.notna(p_value)
+            else "Insufficient residual variation for randomized-block ANOVA"
+        ),
+    }
 
 
 def generate_topic_level_metric_scores_for_anova(integrated_responses: pd.DataFrame) -> pd.DataFrame:
     """
-    Build the topic-level score table used by one-way ANOVA.
+    Build the domain-level score table used by randomized-block ANOVA.
 
-    Why this is needed:
-    - evaluation_scores.csv has one macro-average row per chatbot, which is not enough
-      for ANOVA because each chatbot would have only one observation per metric.
-    - This table creates repeated observations at the topic level, then compares chatbot
-      groups within each metric.
-
-    Scope:
-    - Keeps the 7 benchmark metrics in ROBUSTNESS_METRICS.
-    - Uses only formal assessment topics in ROBUSTNESS_TOPIC_ORDER.
-    - Excludes the note/disclaimer topic.
+    This table keeps the existing metric calculations unchanged, but stores one row per
+    chatbot x response-domain pair. The ANOVA then compares chatbot systems while
+    accounting for the same set of response domains being scored across systems.
     """
     if integrated_responses is None or integrated_responses.empty:
         print("[WARN] ANOVA skipped: integrated responses not provided.")
@@ -349,7 +425,7 @@ def generate_topic_level_metric_scores_for_anova(integrated_responses: pd.DataFr
     target_topics = sorted(target_topics, key=_topic_sort_key_for_robustness)
 
     if not target_topics:
-        print("[WARN] ANOVA skipped: none of the formal benchmark topics were found.")
+        print("[WARN] ANOVA skipped: none of the formal benchmark response domains were found.")
         return pd.DataFrame()
 
     rows = []
@@ -402,15 +478,15 @@ def generate_topic_level_metric_scores_for_anova(integrated_responses: pd.DataFr
     return topic_level_df
 
 
-def generate_oneway_anova_by_metric(topic_level_df: pd.DataFrame) -> pd.DataFrame:
+def generate_randomized_block_anova_by_metric(topic_level_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Run one-way ANOVA for each benchmark metric.
+    Run randomized-block ANOVA for each benchmark metric.
 
-    For each metric, the null hypothesis is that the mean topic-level score is equal
-    across chatbot systems. The grouping variable is Chatbot.
+    For each metric, the null hypothesis is that the mean domain-level score is equal
+    across chatbot systems after accounting for response-domain differences.
     """
     if topic_level_df is None or topic_level_df.empty:
-        print("[WARN] ANOVA skipped: topic-level metric table is empty.")
+        print("[WARN] ANOVA skipped: domain-level metric table is empty.")
         return pd.DataFrame()
 
     metric_cols = _get_available_robustness_metrics(topic_level_df)
@@ -420,58 +496,18 @@ def generate_oneway_anova_by_metric(topic_level_df: pd.DataFrame) -> pd.DataFram
 
     rows = []
     for metric in metric_cols:
-        metric_df = topic_level_df[["Chatbot", metric]].copy()
-        metric_df[metric] = pd.to_numeric(metric_df[metric], errors="coerce")
-        metric_df = metric_df.dropna(subset=[metric])
-
-        grouped = [
-            group[metric].to_numpy(dtype=float)
-            for _, group in metric_df.groupby("Chatbot")
-            if group[metric].notna().sum() > 0
-        ]
-        group_sizes = {
-            str(chatbot): int(group[metric].notna().sum())
-            for chatbot, group in metric_df.groupby("Chatbot")
-        }
-
-        k = len(grouped)
-        total_n = int(sum(len(g) for g in grouped))
-        df_between = k - 1
-        df_within = total_n - k
-
-        if k < 2 or df_within <= 0:
-            f_statistic = np.nan
-            p_value = np.nan
-            eta_squared = np.nan
-        else:
-            f_statistic, p_value = stats.f_oneway(*grouped)
-            eta_squared = _eta_squared_from_groups(grouped)
-
-        rows.append(
-            {
-                "Metric": metric,
-                "Number of Chatbot Groups": k,
-                "Total Topic-Level Observations": total_n,
-                "df_between": df_between,
-                "df_within": df_within,
-                "F Statistic": round(float(f_statistic), 4) if pd.notna(f_statistic) else np.nan,
-                "p-value": round(float(p_value), 6) if pd.notna(p_value) else np.nan,
-                "Eta Squared": round(float(eta_squared), 4) if pd.notna(eta_squared) else np.nan,
-                "Group Sizes": group_sizes,
-                "Interpretation": (
-                    "Statistically significant chatbot differences (p < .05)"
-                    if pd.notna(p_value) and float(p_value) < 0.05
-                    else "No statistically significant chatbot differences at p < .05"
-                    if pd.notna(p_value)
-                    else "Insufficient topic-level observations for ANOVA"
-                ),
-            }
-        )
+        result = _run_randomized_block_anova(topic_level_df, metric)
+        rows.append({"Metric": metric, **result})
 
     return pd.DataFrame(rows)
 
 
-def save_oneway_anova_outputs(
+# Backward-compatible wrapper for older scripts that still call the previous name.
+def generate_oneway_anova_by_metric(topic_level_df: pd.DataFrame) -> pd.DataFrame:
+    return generate_randomized_block_anova_by_metric(topic_level_df)
+
+
+def save_randomized_block_anova_outputs(
     anova_df: pd.DataFrame,
     topic_level_df: pd.DataFrame,
 ):
@@ -479,10 +515,18 @@ def save_oneway_anova_outputs(
     if topic_level_df is not None and not topic_level_df.empty:
         topic_level_df.to_csv(TOPIC_LEVEL_METRIC_SCORES_CSV_PATH, index=False)
     if anova_df is not None and not anova_df.empty:
-        anova_df.to_csv(ONEWAY_ANOVA_CSV_PATH, index=False)
+        anova_df.to_csv(RANDOMIZED_BLOCK_ANOVA_CSV_PATH, index=False)
 
 
-def plot_oneway_anova_p_values(anova_df: pd.DataFrame):
+# Backward-compatible wrapper for older scripts that still call the previous name.
+def save_oneway_anova_outputs(
+    anova_df: pd.DataFrame,
+    topic_level_df: pd.DataFrame,
+):
+    save_randomized_block_anova_outputs(anova_df=anova_df, topic_level_df=topic_level_df)
+
+
+def plot_randomized_block_anova_p_values(anova_df: pd.DataFrame):
     if anova_df is None or anova_df.empty or "p-value" not in anova_df.columns:
         return
 
@@ -501,11 +545,16 @@ def plot_oneway_anova_p_values(anova_df: pd.DataFrame):
     plt.axhline(y=-np.log10(0.05), linestyle="--", linewidth=1.8, label="p = .05")
     plt.xticks(rotation=45, ha="right")
     plt.ylabel("-log10(p-value)")
-    plt.title("One-Way ANOVA by Benchmark Metric")
+    plt.title("Randomized-Block ANOVA by Benchmark Metric")
     plt.legend()
     plt.tight_layout()
-    plt.savefig(ONEWAY_ANOVA_PLOT_PATH, dpi=DPI)
+    plt.savefig(RANDOMIZED_BLOCK_ANOVA_PLOT_PATH, dpi=DPI)
     plt.close()
+
+
+# Backward-compatible wrapper for older scripts that still call the previous name.
+def plot_oneway_anova_p_values(anova_df: pd.DataFrame):
+    plot_randomized_block_anova_p_values(anova_df)
 
 
 def run_robustness_outputs(
@@ -513,7 +562,7 @@ def run_robustness_outputs(
     integrated_responses: pd.DataFrame | None = None,
 ):
     """
-    Robustness output is intentionally limited to one-way ANOVA.
+    Inferential output is intentionally limited to randomized-block ANOVA.
 
     Removed from the active pipeline:
     - Spearman metric-correlation matrix
@@ -521,13 +570,13 @@ def run_robustness_outputs(
     - normalized sensitivity summaries
     """
     if integrated_responses is None:
-        print("[WARN] ANOVA skipped: integrated_responses is required for topic-level ANOVA.")
+        print("[WARN] ANOVA skipped: integrated_responses is required for domain-level ANOVA.")
         return
 
     topic_level_df = generate_topic_level_metric_scores_for_anova(integrated_responses)
-    anova_df = generate_oneway_anova_by_metric(topic_level_df)
-    save_oneway_anova_outputs(anova_df=anova_df, topic_level_df=topic_level_df)
-    plot_oneway_anova_p_values(anova_df)
+    anova_df = generate_randomized_block_anova_by_metric(topic_level_df)
+    save_randomized_block_anova_outputs(anova_df=anova_df, topic_level_df=topic_level_df)
+    plot_randomized_block_anova_p_values(anova_df)
 
 
 def process_all_outputs(
