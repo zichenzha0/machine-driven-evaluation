@@ -170,6 +170,7 @@ def plot_urgency_dimension(urgency_df: pd.DataFrame):
 def plot_risk_factor_dimension(risk_factor_df: pd.DataFrame):
     _ensure_dir(PLOTS_DIR)
     clean_df = _remove_overall_average_row(risk_factor_df)
+
     required_cols = ["Chatbot", "Risk-Assessment Reference Similarity"]
     missing_cols = [col for col in required_cols if col not in clean_df.columns]
     if missing_cols:

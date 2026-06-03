@@ -3,9 +3,6 @@
 # Licensed under the MIT Academic Research License
 # See LICENSE file in the project root for details.
 
-"""
-Main execution script for the benchmark pipeline.
-"""
 from __future__ import annotations
 import pandas as pd
 from src.commonconst import *
@@ -13,22 +10,10 @@ from src.data.data_processing import (
     extract_text_from_docx,
     save_processed_files,
 )
-from src.utils.evaluation_algo import (
-    ensure_output_dirs,
-    generate_evaluation_scores,
-    generate_not_hate_metric_scores,
-    generate_urgency_dimension_scores,
-    generate_risk_factor_dimension_scores,
-    save_evaluation_to_csv,
-)
+from src.utils.evaluation_algo import ensure_output_dirs, generate_evaluation_scores, generate_not_hate_metric_scores, generate_urgency_dimension_scores, generate_risk_factor_dimension_scores, save_evaluation_to_csv
 from src.utils.output_processing import process_all_outputs
 
-def append_component_scores_to_evaluation(
-    evaluation_df: pd.DataFrame,
-    not_hate_df: pd.DataFrame,
-    urgency_df: pd.DataFrame,
-    risk_factor_df: pd.DataFrame,
-) -> pd.DataFrame:
+def append_component_scores_to_evaluation(evaluation_df: pd.DataFrame, not_hate_df: pd.DataFrame, urgency_df: pd.DataFrame, risk_factor_df: pd.DataFrame) -> pd.DataFrame:
     merged_df = evaluation_df.copy()
     component_dfs = [not_hate_df, urgency_df, risk_factor_df]
     for component_df in component_dfs:

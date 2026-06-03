@@ -38,12 +38,10 @@ for nltk_path, nltk_name in _NLTK_RESOURCES:
             pass
 
 _MODEL_CACHE: Dict[str, Dict[str, Any]] = {}
-
 _vowel_pattern = re.compile(r"[aeiouy]+", re.I)
 _sentence_splitter = re.compile(r"[.!?]+")
 _word_pattern = re.compile(r"[A-Za-z']+")
 _non_alnum_pattern = re.compile(r"[^a-z0-9]+")
-
 DEFAULT_CLASSIFIER_MAX_LENGTH = 512
 DEFAULT_CHUNK_OVERLAP = 32
 
@@ -250,6 +248,9 @@ def prepare_aggregated_views(df: pd.DataFrame) -> Dict[str, Any]:
         "chatbot_topic_df": chatbot_topic_df,
     }
 
+# =================================
+# REFERENCE ANCHOR EXTRACTION
+# =================================
 def _collect_topic_text(topic_map: Dict[str, str], topics: List[str], fallback: str) -> str:
     collected = [topic_map.get(topic, "") for topic in topics if topic_map.get(topic, "")]
     anchor = _concat_text_list(collected)
@@ -318,7 +319,6 @@ def _get_classifier_probability(text: str, model_key: str, label_hints: List[str
     total_weight = float(sum(weights))
     if total_weight <= 0:
         return 0.0
-
     return float(max(0.0, min(1.0, sum(weighted_scores) / total_weight)))
 
 def get_not_hate_probability(text):
@@ -347,7 +347,6 @@ def get_reference_alignment_score(response_text: str, anchor_text: str) -> float
     sim = float(cosine_similarity([embeddings[0]], [embeddings[1]])[0][0])
     scaled = (sim + 1.0) / 2.0
     return float(max(0.0, min(1.0, scaled)))
-
 # =================================
 # BENCHMARK 1: ROUGE
 # =================================
@@ -359,7 +358,6 @@ def calculate_average_rouge(reference_text, generated_text):
     scores = scorer.score(str(reference_text), str(generated_text))
     f_measures = [scores[m].fmeasure for m in ROUGE_METRICS]
     return round(float(np.mean(f_measures)), 4)
-
 # =================================
 # BENCHMARK 2: METEOR
 # =================================
@@ -380,14 +378,12 @@ def calculate_meteor(reference_text, generated_text):
         gamma=METEOR_GAMMA,
     )
     return round(float(score), 4)
-
 # =================================
 # BENCHMARK 3: NEGATIVE TONE
 # =================================
 def evaluate_negative_tone_probability(generated_text):
     negative_prob = get_negative_probability(generated_text)
     return round(float(negative_prob), 4)
-
 # =================================
 # BENCHMARK 4: READABILITY
 # =================================
@@ -416,7 +412,6 @@ def evaluate_readability_score(generated_text):
         - 84.6 * (syllable_count / word_count)
     )
     return round(float(max(0.0, min(100.0, reading_ease))), 4)
-
 # =================================
 # MACRO-AVERAGE HELPERS
 # =================================
@@ -425,12 +420,7 @@ def _macro_average(values: List[float]) -> float:
         return 0.0
     return round(float(np.mean(values)), 4)
 
-def _topic_macro_metric(
-    reference_topic_map: Dict[str, str],
-    response_topic_map: Dict[str, str],
-    topics: List[str],
-    metric_fn,
-) -> float:
+def _topic_macro_metric(reference_topic_map: Dict[str, str], response_topic_map: Dict[str, str], topics: List[str], metric_fn) -> float:
     scores = []
     for topic in topics:
         reference_text = reference_topic_map.get(topic, "")
@@ -438,20 +428,13 @@ def _topic_macro_metric(
         scores.append(float(metric_fn(reference_text, response_text)))
     return _macro_average(scores)
 
-def _topic_macro_single_text_metric(
-    response_topic_map: Dict[str, str],
-    topics: List[str],
-    metric_fn,
-) -> float:
+def _topic_macro_single_text_metric(response_topic_map: Dict[str, str], topics: List[str], metric_fn) -> float:
     scores = []
     for topic in topics:
         response_text = response_topic_map.get(topic, "")
         scores.append(float(metric_fn(response_text)))
     return _macro_average(scores)
 
-# =================================
-# OPTIONAL OVERALL SUMMARY ROW
-# =================================
 def append_overall_average_row(df: pd.DataFrame, label: str = OVERALL_AVERAGE_LABEL) -> pd.DataFrame:
     if df.empty:
         return df.copy()
@@ -470,7 +453,6 @@ def append_overall_average_row(df: pd.DataFrame, label: str = OVERALL_AVERAGE_LA
         else:
             overall_row[col] = ""
     return pd.concat([summary_df, pd.DataFrame([overall_row])], ignore_index=True)
-
 
 # =================================
 # MAIN EVALUATION PIPELINE
@@ -531,6 +513,7 @@ def generate_evaluation_scores(integrated_responses, include_overall_average: bo
     if include_overall_average:
         df = append_overall_average_row(df)
     return df
+
 # =================================
 # COMPONENT 1: NOT-HATE / IDENTITY-HARM FLOOR
 # =================================
@@ -552,11 +535,11 @@ def generate_not_hate_metric_scores(integrated_responses, include_overall_averag
                 "Reference Non-Hateful Language Probability": reference_not_hate_prob,
             }
         )
+
     df = pd.DataFrame(rows, columns=NOT_HATE_METRIC_COLUMNS)
     if include_overall_average:
         df = append_overall_average_row(df)
     return df
-
 # =================================
 # COMPONENT 2: CRISIS-RESPONSE REFERENCE SIMILARITY
 # =================================
@@ -592,7 +575,6 @@ def generate_urgency_dimension_scores(integrated_responses, include_overall_aver
     if include_overall_average:
         df = append_overall_average_row(df)
     return df
-
 # =================================
 # COMPONENT 3: RISK FACTOR
 # =================================
@@ -628,7 +610,6 @@ def generate_risk_factor_dimension_scores(integrated_responses, include_overall_
     if include_overall_average:
         df = append_overall_average_row(df)
     return df
-
 def generate_identity_dimension_scores(integrated_responses, include_overall_average: bool = False):
     return generate_urgency_dimension_scores(integrated_responses, include_overall_average)
 
