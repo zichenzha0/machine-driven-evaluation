@@ -1,281 +1,151 @@
-# Evaluating Trust and Inclusivity: A Machine-Driven Benchmark for Large Language Model Chatbots in LGBTQ+ Suicide Prevention
+# Benchmarking Chatbot Responses in High-Stakes LGBTQ+ Suicide-Prevention Contexts: An Exploratory Evaluation of Language-Safety Signal and Machine-Human Response Alignment
 
-**📄 Research Paper Repository - Submitted to AI & Society (Springer Nature)**
+This repository contains the code used for an exploratory machine-driven benchmark of LLM-based chatbot responses to a high-stakes LGBTQ+ suicide-risk assessment scenario. The project evaluates chatbot outputs against a Community Expert and Accountability Panel (CEAP) consensus reference response using automated metrics that describe machine-readable response patterns.
 
----
+This code is designed for descriptive benchmarking only. The generated scores should not be interpreted as evidence of clinical safety, therapeutic quality, model superiority, or real-world suicide-prevention effectiveness.
 
-## 🌐 Web Application and Pipeline Development
+## Project Purpose
 
-### **🔗 Interactive Benchmark Tool**: [http://crmforrealty.com/](http://crmforrealty.com/)
+The associated manuscript examines how eight LLM-based chatbots respond to a standardized prompt simulating a social worker's help request about suicide-risk assessment with an LGBTQ+ client. The benchmark focuses on seven automated metrics:
 
-We are developing the **gAyl BENCHMARK TOOL** web application that extends this research for broader accessibility:
-- ⚖️ **Ethical Analysis**: Interactive LGBTQ+ inclusivity assessment
-- 🌈 **Inclusivity Metrics**: Real-time diversity evaluation
-- 📊 **Text Complexity**: Dynamic readability analysis
-- 💭 **Sentiment Analysis**: Advanced emotional tone evaluation
+1. **ROUGE Lexical Overlap** — lexical content coverage compared with the CEAP reference.
+2. **METEOR Lexical-Semantic Alignment** — language-level alignment allowing some wording variation.
+3. **Negative Sentiment Probability** — affective-tone signal, not a harm score.
+4. **Flesch Reading Ease** — readability/accessibility indicator.
+5. **Non-Hateful Language Probability** — basic screen for overt hateful or stigmatizing language.
+6. **Crisis-Response Reference Similarity** — semantic similarity to selected crisis-response reference sections.
+7. **Risk-Assessment Reference Similarity** — semantic similarity to selected suicide-risk assessment reference sections.
 
-### **🚀 Web Application Repository**: 
-**[https://github.com/ZhaoJackson/AI_Response_Evaluation_Benchmark](https://github.com/ZhaoJackson/AI_Response_Evaluation_Benchmark)**
+The manuscript positions these metrics as machine-readable indicators rather than measures of clinical competence, LGBTQ+-affirming quality, or safety.
 
-This companion repository contains the **automated web application benchmark** that implements our evaluation pipeline with:
-- **🌐 Flask Web Interface**: Interactive evaluation platform
-- **🔌 REST API Endpoints**: Programmatic access to evaluation functions
-- **💾 Automatic Database**: CSV-based data collection and tracking
-- **📊 Real-time Statistics**: Live evaluation metrics and history
-- **🔄 Reinforcement Learning Integration**: Automated data collection for model improvement
+## Workflow Overview
 
-The web application serves as a **practical implementation** of our research pipeline, enabling:
-- **Live Chatbot Testing**: Real-time evaluation of AI responses
-- **Data Collection**: Automated database building for future research
-- **Community Access**: Broader accessibility to evaluation tools
-- **Pipeline Improvement**: Continuous enhancement based on usage data
+![Pipeline Workflow](assets/workflow.png)
 
-**For collaboration and web application access**: Contact Zichen Zhao ([zz3119@columbia.edu](mailto:zz3119@columbia.edu))
+## Code Structure
 
----
-
-## 📋 Paper Overview
-
-This repository contains the complete implementation and evaluation system for our research paper examining AI chatbot effectiveness in LGBTQ+ mental health and suicide prevention contexts. The study compares AI-generated responses to expert-crafted human references across six comprehensive metrics: lexical overlap, semantic similarity, ethical alignment, emotional tone, cultural inclusivity, and communication accessibility. Our goal is to ensure AI chatbots provide supportive, unbiased, and ethically sound assistance for vulnerable LGBTQ+ populations in crisis situations.
-
-## Motivation
-
-With mental health chatbots increasingly being used in healthcare, it is vital that they respond with sensitivity, particularly toward vulnerable populations like LGBTQ+ individuals. This project evaluates AI responses in critical mental health scenarios to identify areas where AI responsiveness and empathy can improve. This evaluation highlights gaps in chatbot response quality to foster advancements in AI support for LGBTQ+ mental health.
-
-## Evaluation Pipeline Flowchart
-![Evaluation Flowchart](assets/flowchart.png)
-
-## 🏗️ Repository Structure and Workflow Guide
-
-### **Complete File Structure**:
-```
-Text-Reference-AIChatbot/
-├── main.py                          # 🚀 Main execution script - START HERE
-├── requirements.txt                 # 📦 Python dependencies
-├── LICENSE                          # 📜 Academic research license
-├── README.md                        # 📖 This overview document
-├── .gitignore                       # 🔒 Git ignore configuration
-│
+```text
+project-root/
+├── main.py
 ├── src/
-│   ├── commonconst.py              # ⚙️ System constants (214 parameters)
-│   │
-│   ├── data/                       # 📁 Input data and processing
-│   │   ├── data_processing.py      # 🔄 DOCX → CSV conversion
-│   │   ├── Test Reference Text.docx # 👤 Human expert responses
-│   │   └── Test Chatbot text.docx  # 🤖 11 AI chatbot responses
-│   │
-│   ├── utils/                      # 🧮 Core evaluation system
-│   │   ├── evaluation_algo.py      # 📊 6 evaluation algorithms
-│   │   ├── weights.py              # ⚖️ Weight justification (703 lines)
-│   │   └── user_guide.py           # 📚 Complete implementation guide
-│   │
-│   └── outputs/                    # 📈 Generated results
-│       ├── processed_*.csv         # 🔄 Structured data files
-│       ├── evaluation_scores.csv   # 🎯 Final evaluation results
-│       └── Plots/                  # 📊 6 visualization charts
-│           ├── ethical_alignment_score.png
-│           ├── inclusivity_score.png
-│           ├── sentiment_distribution_score.png
-│           └── [3 more charts]
+│   ├── commonconst.py
+│   ├── data/
+│   │   ├── Test Reference Text.docx
+│   │   ├── Test Chatbot text.docx
+│   │   └── data_processing.py
+│   ├── utils/
+│   │   ├── evaluation_algo.py
+│   │   └── output_processing.py
+│   └── outputs/
+│       ├── evaluation_scores.csv
+│       ├── integrated_chatbot_responses.csv
+│       ├── processed_chatbot_text.csv
+│       ├── processed_reference_text.csv
+│       └── Plots/
+└── README.md
 ```
 
-### **🚀 Quick Start Workflow (5 Minutes)**:
+### `main.py`
 
-1. **📥 Clone and Setup**:
-   ```bash
-   git clone https://github.com/ZhaoJackson/Text-Reference-AIChatbot.git
-   cd Text-Reference-AIChatbot
-   python -m venv venv && source venv/bin/activate  # Create virtual environment
-   ```
+Main execution script. It runs the full benchmark pipeline:
 
-2. **📦 Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   python -c "import nltk; nltk.download('punkt'); nltk.download('cmudict')"
-   ```
+1. Loads the CEAP reference text and chatbot response text from DOCX files.
+2. Processes and saves structured intermediate CSV files.
+3. Generates benchmark scores across the seven automated metrics.
+4. Appends all benchmark components into one main results table.
+5. Saves `evaluation_scores.csv` and benchmark plots.
 
-3. **🏃 Run Evaluation**:
-   ```bash
-   python main.py  # Complete pipeline execution (~2-3 minutes)
-   ```
+The current version is benchmark-only and does **not** run inferential statistics, ANOVA, robustness tests, correlation matrices, or sensitivity analyses.
 
-4. **📊 View Results**:
-   ```bash
-   # Check evaluation scores
-   head -5 src/outputs/evaluation_scores.csv
-   
-   # View generated charts
-   ls src/outputs/Plots/*.png
-   ```
+### `src/commonconst.py`
 
-### **📚 Understanding the Workflow**:
+Central configuration file for paths, constants, column names, model settings, topic labels, plotting settings, and metric definitions. Key settings include:
 
-#### **Phase 1: Data Processing**
-- `src/data/data_processing.py` extracts text from DOCX files
-- Creates structured CSV files for systematic evaluation
-- Aggregates multiple response fragments into complete responses
+- input file paths for reference and chatbot DOCX files;
+- output paths for CSV files and plots;
+- canonical response-domain ordering;
+- Hugging Face model configurations;
+- benchmark metric column names;
+- plot size, rotation, and DPI.
 
-#### **Phase 2: Evaluation Pipeline** 
-- `src/utils/evaluation_algo.py` runs 6 evaluation algorithms
-- Each algorithm uses parameters from `src/commonconst.py`
-- Generates comprehensive scoring matrix for all chatbots
+### `src/data/data_processing.py`
 
-#### **Phase 3: Results and Visualization**
-- `src/outputs/output_processing.py` creates comparative charts
-- Final scores saved in `evaluation_scores.csv`
-- Visual analysis available in `Plots/` directory
+Processes raw DOCX files into structured CSV data. This module extracts text from the reference and chatbot documents, separates chatbot/platform sections, standardizes response domains, and creates the integrated response file used by the evaluation pipeline.
 
-### **🔍 Deep Dive Resources**:
-- **📖 Complete User Guide**: `src/utils/user_guide.py` (1,300+ lines of implementation guidance)
-- **⚖️ Weight Justifications**: `src/utils/weights.py` (Clinical rationale for all parameters)
-- **🧮 Algorithm Details**: `src/utils/evaluation_algo.py` (Detailed implementation with comments)
+### `src/utils/evaluation_algo.py`
 
-## Methodology
+Core scoring module. It computes:
 
-### 1. Data Preprocessing
-- **`data_processing.py`**: Extracts structured data from `.docx` files and converts chatbot/human responses into clean CSV format for analysis.
+- ROUGE Lexical Overlap;
+- METEOR Lexical-Semantic Alignment;
+- Negative Sentiment Probability using a RoBERTa-based sentiment classifier;
+- Flesch Reading Ease;
+- Non-Hateful Language Probability using a RoBERTa-based hate-speech classifier;
+- Crisis-Response Reference Similarity using sentence-transformer embeddings;
+- Risk-Assessment Reference Similarity using sentence-transformer embeddings.
 
-### 2. Six-Metric Evaluation System (in `evaluation_algo.py`)
+It also prepares aggregated chatbot and reference views, builds reference anchors for crisis-response and risk-assessment similarity, chunks long text for classifier models, and saves the final score table.
 
-Our comprehensive evaluation system assesses each chatbot response across six professional competency dimensions:
+### `src/utils/output_processing.py`
 
-| Metric | Range | Function | Clinical Purpose |
-|--------|-------|----------|------------------|
-| **ROUGE Score** | 0–1 | `calculate_average_rouge()` | Lexical overlap with expert responses - ensures coverage of critical topics |
-| **METEOR Score** | 0–1 | `calculate_meteor()` | Semantic similarity with synonym awareness - evaluates empathetic language variation |
-| **Ethical Alignment** | 0–1 | `evaluate_ethical_alignment()` | **Rule-based professional competency assessment** across 6 components (LGBTQ+ 25%, Crisis 20%, Social Work 20%, etc.) |
-| **Sentiment Distribution** | 0–1 | `evaluate_sentiment_distribution()` | Emotional tone alignment using DistilRoBERTa with therapeutic weighting |
-| **Inclusivity Score** | ≥0 | `evaluate_inclusivity_score()` | LGBTQ+ affirming language with hierarchical scoring (Core: 4pts, Secondary: 2.5pts) |
-| **Complexity Score** | ~20-80 | `evaluate_complexity_score()` | Crisis-modified Flesch-Kincaid for accessibility during emotional distress |
+Generates benchmark visualizations from the final results. The current version saves metric-specific bar plots to `src/outputs/Plots/`. It also cleans deprecated outputs from earlier versions, including stale CSV files or pass/fail figures.
 
-### **🎯 Expected Results After Running `python main.py`**:
-- **Ethical Alignment**: 0.61-0.89 (meaningful professional differentiation)
-- **Inclusivity**: 0.00-0.42 (variable LGBTQ+ competency)  
-- **Sentiment Distribution**: 0.04-1.00 (diverse emotional alignment)
-- **ROUGE/METEOR**: 0.19-0.36 (moderate similarity ranges)
-- **Complexity**: 49-61 (appropriate crisis accessibility)
-- **Visualizations**: 6 comparative bar charts generated automatically
+## Inputs
 
----
-## Chatbots Evaluated
+The pipeline expects two DOCX files:
 
-### General-Purpose LLMs:
-- **ChatGPT-4**
-- **Claude (Anthropic)**
-- **Gemini (Google)**
-- **LLaMA-3 (Meta)**
-- **DeepSeek**
-- **Mistral**
-- **Perplexity AI**
-- **HuggingChat**
+- `src/data/Test Reference Text.docx` — CEAP consensus human reference response.
+- `src/data/Test Chatbot text.docx` — chatbot responses organized by chatbot system and response domain.
 
-### LGBTQ+-Specific Chatbots:
-- **JackAI**
-- **Gender Journey Chatbot Rubies**
+The standardized response domains include:
 
-These platforms were selected for their relevance in AI ethics, mental health, and LGBTQ+ inclusivity—ensuring both high-tech LLMs and community-centric tools are evaluated under equal standards.
+- Current Suicidal Ideation
+- Risk Assessment
+- Nature of Thoughts, Plan, & Access to Means
+- Support System & Protective Factors
+- Safety Plan
+- Risk Re-Assessment
+- Other Important Assessment Aspects
 
----
+## Outputs
 
-## 📈 Key Research Findings
+Primary outputs are saved under `src/outputs/`:
 
-### **Top Performers by Professional Competency**:
+- `evaluation_scores.csv` — final benchmark table containing all seven metrics.
+- `integrated_chatbot_responses.csv` — structured chatbot and reference response data.
+- `processed_chatbot_text.csv` — processed chatbot text.
+- `processed_reference_text.csv` — processed CEAP reference text.
+- `Plots/` — visualizations for each benchmark metric.
 
-| Rank | Chatbot | Ethical Alignment | Key Strengths |
-|------|---------|------------------|---------------|
-| 1 | **DeepSeek** | 0.89 | Exceptional LGBTQ+ competency, comprehensive crisis assessment |
-| 2 | **Mistral AI** | 0.88 | Strong professional practice, good crisis focus |
-| 3 | **HuggingChat** | 0.85 | Solid overall competency, appropriate questioning |
-| 11 | **Claude** | 0.61 | Limited LGBTQ+ focus, basic crisis assessment only |
+## Running the Pipeline
 
-### **Metric Range Analysis**:
-- **Ethical Alignment**: 0.61–0.89 → **Meaningful professional differentiation achieved**
-- **Inclusivity**: 0.00–0.42 → **Significant gaps in LGBTQ+ affirming language**
-- **Sentiment Distribution**: 0.04–1.00 → **Diverse emotional intelligence capabilities**
-- **ROUGE/METEOR**: 0.19–0.36 → **Moderate lexical/semantic similarity to expert responses**
-- **Complexity**: 49–61 → **Appropriate accessibility for crisis communication**
+Install the required Python dependencies, place the two input DOCX files in `src/data/`, and run:
 
-### **Critical Observations**:
-- **Professional Competency Varies Significantly**: 28-point spread in ethical alignment scores
-- **LGBTQ+ Competency Gaps**: Most chatbots lack specialized identity-affirming language
-- **Crisis Assessment Quality**: Strong variation in suicide risk assessment capabilities
-- **Accessibility Consistency**: All chatbots maintain appropriate readability for crisis contexts
-
----
-
-## Results Interpretation
-
-| Metric | Insight |
-|--------|---------|
-| **ROUGE / METEOR** | High = better alignment with human phrasing. |
-| **Ethical Alignment** | High = more safety-conscious, affirming language. |
-| **Inclusivity** | High = uses LGBTQ+-affirming terms, avoids harm. |
-| **Sentiment** | High = tone matches supportive reference. |
-| **Complexity** | Mid-range ideal; too low = vague, too high = overly complex. |
-
----
-
-## 🚀 Future Research and Development
-
-### **Active Development**:
-- **🌐 Web Application**: [AI_Response_Evaluation_Benchmark](https://github.com/ZhaoJackson/AI_Response_Evaluation_Benchmark) provides automated evaluation platform
-- **🔄 Reinforcement Learning**: Automated data collection for continuous pipeline improvement
-- **📊 Real-time Evaluation**: Interactive assessment capabilities through Flask web interface
-- **💾 Database Integration**: Automatic CSV tracking for longitudinal analysis
-
-### **Research Pipeline Enhancement**:
-- **Enhanced LGBTQ+ Competency**: Specialized training recommendations based on evaluation gaps
-- **Clinical Integration**: Direct implementation in therapeutic settings via web platform
-- **Multilingual Support**: Spanish and other language evaluation capabilities
-- **Community Collaboration**: Open research partnerships through automated benchmark tool
-
-### **Technical Innovation**:
-- **API Integration**: RESTful endpoints for programmatic access to evaluation functions
-- **Automated Data Collection**: Continuous database building for model improvement
-- **Statistical Analysis**: Real-time metrics and evaluation history tracking
-- **Scalable Architecture**: Web-based platform for broader research community access
-
----
-
-## 📞 Contact and Collaboration
-
-### **Lead Researcher**:
-**Zichen Zhao**  
-📧 [zz3119@columbia.edu](mailto:zz3119@columbia.edu)  
-🔬 AI Ethics in Mental Health and AI Technology Studies
-
-### **Web Application Development**:
-**Sam Abdella** - gAyl BENCHMARK TOOL  
-📧 [sn3136@columbia.edu](mailto:sn3136@columbia.edu)  
-🌐 [http://crmforrealty.com/](http://crmforrealty.com/)
-
-### **Faculty Supervision**:
-**Prof. Elwin Wu** ([elwin.wu@columbia.edu](mailto:elwin.wu@columbia.edu))  
-**Prof. Charles Lea** ([chl2159@columbia.edu](mailto:chl2159@columbia.edu))
-
----
-
-## 📜 License and Citation
-
-**License**: MIT Academic Research License (see [`LICENSE`](LICENSE))  
-**Usage**: Free for academic research, citation required, commercial use restricted
-
-**Citation**:
-```bibtex
-@misc{zhao2025chatbot,
-  title={Evaluating Trust and Inclusivity: A Machine-Driven Benchmark for Large Language Model Chatbots in LGBTQ+ Suicide Prevention},
-  author={Zhao, Zichen},
-  year={2025},
-  url={https://github.com/ZhaoJackson/Text-Reference-AIChatbot},
-  note={Submitted to AI \& Society (Springer Nature). Web application: http://crmforrealty.com/. Implementation: https://github.com/ZhaoJackson/AI_Response_Evaluation_Benchmark}
-}
+```bash
+python main.py
 ```
 
----
+Expected console output:
 
-## 🔗 Related Repositories and Resources
+```text
+Benchmark evaluation complete.
+Main results saved to: src/outputs/evaluation_scores.csv
+Integrated responses saved to: src/outputs/integrated_chatbot_responses.csv
+All plots saved to: src/outputs/Plots
+```
 
-**📄 Paper Repository**: [https://github.com/ZhaoJackson/Text-Reference-AIChatbot](https://github.com/ZhaoJackson/Text-Reference-AIChatbot) (This repository)  
-**🌐 Web Application**: [https://github.com/ZhaoJackson/AI_Response_Evaluation_Benchmark](https://github.com/ZhaoJackson/AI_Response_Evaluation_Benchmark)  
-**🔗 Live Demo**: [http://crmforrealty.com/](http://crmforrealty.com/)  
-**📄 Paper Status**: Under review at AI & Society (Springer Nature)
+## Interpretation Notes
+
+This benchmark should be interpreted cautiously:
+
+- ROUGE and METEOR are content-coverage and lexical-semantic alignment proxies, not clinical quality measures.
+- Negative Sentiment Probability is an affective-tone signal. In suicide-risk assessment, more direct language may be classified as more negative even when clinically necessary.
+- Non-Hateful Language Probability only screens for overt hateful or stigmatizing language and does not establish LGBTQ+-affirming quality.
+- Embedding-based similarity metrics describe semantic alignment with selected reference sections, not correctness or safety.
+- Flesch Reading Ease indicates readability/accessibility, not completeness or clinical appropriateness.
+
+The pipeline is intended to support AI auditing, manuscript reproducibility, and structured inspection of chatbot outputs. It does not replace expert review, clinical supervision, validated suicide-risk assessment instruments, or LGBTQ+-informed human judgment.
+
+## Current Manuscript Framing
+
+The associated paper frames the study as an exploratory benchmark. It does not claim that any chatbot is clinically safe, trustworthy, or superior. Instead, it demonstrates how automated metrics can help make AI-generated responses more inspectable across multiple dimensions relevant to social work research, practice, and training.

@@ -9,9 +9,6 @@ src/outputs/*.png
 # Ignore everything under Plots (inside outputs)
 src/outputs/Plots/
 
-# Ignore assets folder
-assets/
-
 # Optionally: Ignore compiled Python files and system files
 __pycache__/
 *.pyc

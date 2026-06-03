@@ -56,7 +56,6 @@ CHATBOT_DOCX_PATH = "src/data/Test Chatbot text.docx"
 OUTPUT_DIR = "src/outputs"
 PLOTS_DIR = os.path.join(OUTPUT_DIR, "Plots")
 DIMENSIONS_DIR = PLOTS_DIR  # backward-compatible alias; separate Dimensions folder removed
-SENSITIVITY_DIR = PLOTS_DIR  # backward-compatible alias
 
 OUTPUT_CSV_PATH = os.path.join(OUTPUT_DIR, "evaluation_scores.csv")
 INTEGRATED_OUTPUT_CSV_PATH = os.path.join(OUTPUT_DIR, "integrated_chatbot_responses.csv")
@@ -65,51 +64,9 @@ REFERENCE_PROCESSED_CSV_PATH = os.path.join(OUTPUT_DIR, "processed_reference_tex
 
 
 # =================================
-# ROBUSTNESS / INFERENTIAL OUTPUTS
+# BENCHMARK-ONLY OUTPUTS
 # =================================
-ROBUSTNESS_DIR = os.path.join(OUTPUT_DIR, "Robustness")
-
-RANDOMIZED_BLOCK_ANOVA_CSV_PATH = os.path.join(
-    ROBUSTNESS_DIR,
-    "randomized_block_anova_by_metric.csv",
-)
-
-TOPIC_LEVEL_METRIC_SCORES_CSV_PATH = os.path.join(
-    ROBUSTNESS_DIR,
-    "domain_level_metric_scores_for_anova.csv",
-)
-
-RANDOMIZED_BLOCK_ANOVA_PLOT_PATH = os.path.join(
-    PLOTS_DIR,
-    "randomized_block_anova_p_values_by_metric.png",
-)
-
-# Backward-compatible aliases for older scripts.
-ONEWAY_ANOVA_CSV_PATH = RANDOMIZED_BLOCK_ANOVA_CSV_PATH
-ONEWAY_ANOVA_PLOT_PATH = RANDOMIZED_BLOCK_ANOVA_PLOT_PATH
-
-ROBUSTNESS_METRICS = [
-    "ROUGE Lexical Overlap",
-    "METEOR Lexical-Semantic Alignment",
-    "Negative Sentiment Probability",
-    "Flesch Reading Ease",
-    "Non-Hateful Language Probability",
-    "Crisis-Response Reference Similarity",
-    "Risk-Assessment Reference Similarity",
-]
-
-# ANOVA is run only on the formal response domains below.
-# Risk Level Interpretation and Note are intentionally excluded because they
-# function as contextual guidance rather than formal response domains.
-ROBUSTNESS_TOPIC_ORDER = [
-    "Current Suicidal Ideation",
-    "Risk Assessments",
-    "Nature of Thoughts, Plan, & Access to Means",
-    "Support System & Protective Factors",
-    "Safety Plan",
-    "Risk Re-Assessment",
-    "Other important assessment aspects",
-]
+# The active pipeline saves only the primary benchmark results CSV and plots.
 
 # Split component CSVs are intentionally not written to Plots/.
 # Keep these aliases only for backward compatibility with older scripts.

@@ -71,7 +71,6 @@ DEFAULT_CHUNK_OVERLAP = 32
 def ensure_output_dirs():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     os.makedirs(PLOTS_DIR, exist_ok=True)
-    os.makedirs(ROBUSTNESS_DIR, exist_ok=True)
 
 
 
@@ -99,9 +98,6 @@ def save_evaluation_to_csv(output_path, evaluation_scores):
         )
 
 
-
-def save_sensitivity_to_csv(output_path, df):
-    df.to_csv(output_path, index=False)
 
 
 # =================================
