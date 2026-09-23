@@ -6,22 +6,13 @@
 """
 Constants and configuration module for the benchmark pipeline.
 
-Primary continuous metrics:
-1. ROUGE Lexical Overlap
-2. METEOR Lexical-Semantic Alignment
-3. Negative Sentiment Probability
-4. Flesch Reading Ease
+Seven reported metrics are macro-averaged over the seven prompted response
+domains, and only over domains a system actually covered. The two similarity
+metrics are sentence-level coverage against the reference, reported as raw
+cosine.
 
-Triangulated benchmark components:
-A. Non-hateful language probability
-   - Non-Hateful Language Probability
-   - Reference Non-Hateful Language Probability
-
-B. Crisis-response reference similarity
-   - Crisis-Response Reference Similarity
-
-C. Risk-assessment reference similarity
-   - Risk-Assessment Reference Similarity
+Supplementary columns retain legacy zero-filled scores, additional encoders,
+encoder rank agreement, and a second toxicity classifier.
 """
 
 from __future__ import annotations
@@ -43,7 +34,6 @@ from rouge_score import rouge_scorer
 # SYSTEM CONFIGURATION
 # =================================
 RANDOM_SEED = 42
-EPSILON = 1e-8
 DEVICE = -1
 TEXT_CLASSIFICATION_TASK = "text-classification"
 
@@ -51,33 +41,15 @@ TEXT_CLASSIFICATION_TASK = "text-classification"
 # FILE PATHS CONFIGURATION
 # =================================
 REFERENCE_DOCX_PATH = "src/data/Test Reference Text.docx"
-CHATBOT_DOCX_PATH = "src/data/Test Chatbot text.docx"
+CHATBOT_DOCX_PATH = "src/data/Test Chatbot Text.docx"
 
 OUTPUT_DIR = "src/outputs"
 PLOTS_DIR = os.path.join(OUTPUT_DIR, "Plots")
-DIMENSIONS_DIR = PLOTS_DIR  # backward-compatible alias; separate Dimensions folder removed
 
 OUTPUT_CSV_PATH = os.path.join(OUTPUT_DIR, "evaluation_scores.csv")
 INTEGRATED_OUTPUT_CSV_PATH = os.path.join(OUTPUT_DIR, "integrated_chatbot_responses.csv")
 CHATBOT_PROCESSED_CSV_PATH = os.path.join(OUTPUT_DIR, "processed_chatbot_text.csv")
 REFERENCE_PROCESSED_CSV_PATH = os.path.join(OUTPUT_DIR, "processed_reference_text.csv")
-
-
-# =================================
-# BENCHMARK-ONLY OUTPUTS
-# =================================
-# The active pipeline saves only the primary benchmark results CSV and plots.
-
-# Split component CSVs are intentionally not written to Plots/.
-# Keep these aliases only for backward compatibility with older scripts.
-NOT_HATE_METRIC_CSV_PATH = None
-URGENCY_DIMENSION_CSV_PATH = None
-RISK_FACTOR_DIMENSION_CSV_PATH = None
-
-# backward-compatible aliases for older scripts
-IDENTITY_DIMENSION_CSV_PATH = URGENCY_DIMENSION_CSV_PATH
-SAFETY_DIMENSION_CSV_PATH = RISK_FACTOR_DIMENSION_CSV_PATH
-OVERALL_SUMMARY_CSV_PATH = None  # deprecated; only evaluation_scores.csv is saved
 
 # =================================
 # DATA STRUCTURE DEFINITIONS
@@ -101,8 +73,16 @@ EVALUATION_FIELDNAMES = [
     "METEOR Lexical-Semantic Alignment",
     "Negative Sentiment Probability",
     "Reference Negative Sentiment Probability",
+    "Reference Negative Sentiment Probability (legacy 9-topic)",
     "Flesch Reading Ease",
     "Reference Flesch Reading Ease",
+    "Reference Flesch Reading Ease (legacy 9-topic)",
+    "Topics Scored",
+    "Topics Excluded",
+    "ROUGE Lexical Overlap (legacy zero-filled)",
+    "METEOR Lexical-Semantic Alignment (legacy zero-filled)",
+    "Negative Sentiment Probability (legacy zero-filled)",
+    "Flesch Reading Ease (legacy zero-filled)",
 ]
 
 VISUALIZATION_METRICS = [
@@ -127,10 +107,6 @@ RISK_FACTOR_DIMENSION_COLUMNS = [
     "Chatbot",
     "Risk-Assessment Reference Similarity",
 ]
-
-# backward-compatible aliases for older scripts
-IDENTITY_DIMENSION_COLUMNS = URGENCY_DIMENSION_COLUMNS
-SAFETY_DIMENSION_COLUMNS = RISK_FACTOR_DIMENSION_COLUMNS
 
 OVERALL_SUMMARY_COLUMNS = [
     "Chatbot",
@@ -159,6 +135,18 @@ CANONICAL_TOPIC_ORDER = [
     "Risk Level Interpretation",
     "Other important assessment aspects",
     "Note",
+]
+
+# Domains present in the standardized prompt. "Risk Level Interpretation"
+# and "Note" were never requested, so they are excluded from scoring.
+SCORING_TOPICS = [
+    "Current Suicidal Ideation",
+    "Risk Assessments",
+    "Nature of Thoughts, Plan, & Access to Means",
+    "Support System & Protective Factors",
+    "Safety Plan",
+    "Risk Re-Assessment",
+    "Other important assessment aspects",
 ]
 
 TOPIC_ALIAS_MAP = {
@@ -201,11 +189,6 @@ METEOR_BETA = 3.0
 METEOR_GAMMA = 0.5
 
 # =================================
-# THRESHOLDS
-# =================================
-IDENTITY_HARM_PASS_THRESHOLD = 0.5  # retained for backward compatibility; pass/fail output is not reported
-
-# =================================
 # MODEL CONFIGURATION
 # =================================
 MODEL_CONFIGS = {
@@ -228,7 +211,38 @@ MODEL_CONFIGS = {
         "hf_name": "sentence-transformers/all-mpnet-base-v2",
         "score_name": "Reference Alignment Model",
     },
+
+    # Supplementary toxicity classifier (1 - identity_attack)
+    "identity_harm_unbiased": {
+        "hf_name": "unitary/unbiased-toxic-roberta",
+        "not_hate_label_hints": ["identity_attack"],
+        "score_name": "Non-Hateful Language Probability [unitary/unbiased-toxic-roberta]",
+    },
 }
+
+# Encoders beyond the primary all-mpnet-base-v2 similarity columns.
+# Reference text is the query side; chatbot text is the passage side.
+SUPPLEMENTARY_EMBEDDING_MODELS = {
+    "BAAI/bge-large-en-v1.5": {
+        "query_prefix": "",
+        "passage_prefix": "",
+    },
+    "intfloat/e5-large-v2": {
+        "query_prefix": "query: ",
+        "passage_prefix": "passage: ",
+    },
+}
+
+CRISIS_SIMILARITY_COL = "Crisis-Response Reference Similarity"
+RISK_SIMILARITY_COL = "Risk-Assessment Reference Similarity"
+UNBIASED_NOT_HATE_COL = MODEL_CONFIGS["identity_harm_unbiased"]["score_name"]
+
+NOT_HATE_METRIC_COLUMNS.append(UNBIASED_NOT_HATE_COL)
+for _model_id in SUPPLEMENTARY_EMBEDDING_MODELS:
+    URGENCY_DIMENSION_COLUMNS.append(f"{CRISIS_SIMILARITY_COL} [{_model_id}]")
+    RISK_FACTOR_DIMENSION_COLUMNS.append(f"{RISK_SIMILARITY_COL} [{_model_id}]")
+URGENCY_DIMENSION_COLUMNS.append("Crisis-Response Rank Agreement")
+RISK_FACTOR_DIMENSION_COLUMNS.append("Risk-Assessment Rank Agreement")
 
 # =================================
 # REFERENCE ANCHOR FALLBACKS

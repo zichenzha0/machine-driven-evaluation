@@ -160,6 +160,7 @@ def plot_urgency_dimension(urgency_df: pd.DataFrame):
         return
     plt.figure(figsize=PLOT_FIGSIZE)
     plt.bar(plot_df["Chatbot"], plot_df["Crisis-Response Reference Similarity"])
+    plt.ylim(0, 1)
     plt.xticks(rotation=ROTATION, ha="right")
     plt.ylabel("Crisis-Response Reference Similarity")
     plt.title("Crisis-Response Reference Similarity")
@@ -186,6 +187,7 @@ def plot_risk_factor_dimension(risk_factor_df: pd.DataFrame):
         return
     plt.figure(figsize=PLOT_FIGSIZE)
     plt.bar(plot_df["Chatbot"], plot_df["Risk-Assessment Reference Similarity"])
+    plt.ylim(0, 1)
     plt.xticks(rotation=ROTATION, ha="right")
     plt.ylabel("Risk-Assessment Reference Similarity")
     plt.title("Risk-Assessment Reference Similarity")

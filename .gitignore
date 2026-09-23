@@ -1,6 +1,7 @@
-# Ignore all DOCX files under data/ except Test Reference Text.docx
+# Ignore all DOCX files under data/ except the two pipeline inputs
 src/data/*.docx
 !src/data/Test Reference Text.docx
+!src/data/Test Chatbot Text.docx
 
 # Ignore selected CSV files under output/
 src/outputs/*.csv
@@ -13,3 +14,6 @@ src/outputs/Plots/
 __pycache__/
 *.pyc
 .DS_Store
+# Manuscript files (not part of the code artifact)
+Manuscript.docx
+Response to Reviewers.docx
